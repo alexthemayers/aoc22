@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -61,4 +62,29 @@ func main() {
 
 	fmt.Printf("Elf nr %d has the most calories at %d calories\n", mostCalories, elfTotals[mostCalories])
 
+	// sorting
+	keys := make([]int, 0, len(elfTotals))
+
+	for key := range elfTotals {
+		keys = append(keys, key)
+	}
+
+	sort.SliceStable(keys, func(i, j int) bool {
+		return elfTotals[keys[i]] > elfTotals[keys[j]]
+	})
+
+	//for _, key := range keys {
+	//	fmt.Printf("key %d has value %d\n", key, elfTotals[key])
+	//}
+
+	topThree := 0
+	for i, key := range keys {
+		if i > 2 {
+			break
+		}
+		fmt.Printf("Elf nr %d has %d calories in total\n", i+1, elfTotals[key])
+		topThree += elfTotals[key]
+	}
+
+	fmt.Printf("Top three elves are carrying %d calories\n", topThree)
 }
