@@ -51,7 +51,8 @@ func main() {
 		}
 
 		// Win Case
-		if opponent == "A" {
+		switch opponent {
+		case "A":
 			if response == "Y" {
 				fmt.Println("we've won!")
 				responseScore += 6
@@ -63,9 +64,7 @@ func main() {
 				totalScore += responseScore
 				continue
 			}
-		}
-
-		if opponent == "B" {
+		case "B":
 			if response == "Z" {
 				fmt.Println("we've won!")
 				responseScore += 6
@@ -77,9 +76,7 @@ func main() {
 				totalScore += responseScore
 				continue
 			}
-		}
-
-		if opponent == "C" {
+		case "C":
 			if response == "X" {
 				fmt.Println("we've won!")
 				responseScore += 6
@@ -93,5 +90,5 @@ func main() {
 			}
 		}
 	}
-	fmt.Printf("%d is the total score!\n", totalScore)
+	fmt.Printf("%d is the total score for part 1!\n", totalScore)
 }
