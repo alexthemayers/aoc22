@@ -91,4 +91,57 @@ func main() {
 		}
 	}
 	fmt.Printf("%d is the total score for part 1!\n", totalScore)
+
+	// Part 2
+
+	totalScore = 0
+	for i := range stringData {
+		opponent := strings.Split(stringData[i], " ")[0]
+		outcome := strings.Split(stringData[i], " ")[1]
+		var opponentScore, responseScore int
+
+		switch opponent {
+		case "A":
+			opponentScore += 1
+		case "B":
+			opponentScore += 2
+		case "C":
+			opponentScore += 3
+		}
+
+		switch outcome {
+
+		// Lose
+		case "X":
+			fmt.Println("it's a loss")
+			if opponentScore > 1 {
+				responseScore += opponentScore - 1
+			} else { // opponentScore == 1
+				responseScore += 3
+			}
+			totalScore += responseScore
+			continue
+
+			// Draw
+		case "Y":
+			fmt.Println("it's a draw")
+			responseScore += 3
+			responseScore += opponentScore
+			totalScore += responseScore
+			continue
+
+			// Win
+		case "Z":
+			fmt.Println("it's a win")
+			responseScore += 6
+			if opponentScore < 3 {
+				responseScore += opponentScore + 1
+			} else { // opponentScore == 3
+				responseScore += 1
+			}
+			totalScore += responseScore
+			continue
+		}
+	}
+	fmt.Printf("%d is the total score for part 2!\n", totalScore)
 }
