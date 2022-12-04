@@ -9,11 +9,6 @@ import (
 
 const input = "./3/input.txt"
 
-/*
-Multiple rucksacks
-Each with two compartments
-*/
-
 func main() {
 	// Open Input file
 	data, err := os.ReadFile(input)
@@ -47,5 +42,40 @@ func main() {
 		}
 		score += int(items[s]) - 38
 	}
-	fmt.Println(score)
+	fmt.Printf("Score for part 1: %d\n", score)
+
+	// Part 2
+
+	var badges = make([]rune, 0, len(rucksacks)/3)
+	for i := 0; i < len(rucksacks)-2; i += 3 {
+		badgesLen := len(badges)
+		for _, j := range rucksacks[i] {
+			for _, k := range rucksacks[i+1] {
+				for _, l := range rucksacks[i+2] {
+					if j == k && k == l {
+						badges = append(badges, rune(l))
+					}
+					if len(badges) != badgesLen {
+						break
+					}
+				}
+				if len(badges) != badgesLen {
+					break
+				}
+			}
+			if len(badges) != badgesLen {
+				break
+			}
+		}
+	}
+
+	score = 0
+	for b := range badges {
+		if badges[b] > 96 {
+			score += int(badges[b]) - 96
+			continue
+		}
+		score += int(badges[b]) - 38
+	}
+	fmt.Printf("Score for part 2: %d\n", score)
 }
