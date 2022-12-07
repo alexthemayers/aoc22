@@ -152,9 +152,9 @@ func main() {
 		}
 	}
 
-	//for k, v := range stack {
-	//fmt.Printf("%stack [len: %d ] ::: %stack \n", k, len(v), v)
-	//}
+	for k, v := range stack {
+		fmt.Printf("%s [len: %.2d ] ::: %s \n", k, len(v), v)
+	}
 	for _, i := range stack {
 		if len(i) == 0 {
 			continue
