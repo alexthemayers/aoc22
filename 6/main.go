@@ -7,7 +7,10 @@ import (
 )
 
 const input = "./6/input.txt"
-const bufferLen = 4
+
+// Part 1
+// const bufferLen = 4
+const bufferLen = 14
 
 func newBuffer(data []byte) *charBuffer {
 	b := &charBuffer{
@@ -33,7 +36,7 @@ func (b *charBuffer) display() string {
 }
 
 func (b *charBuffer) newbuf() {
-	b.buffer = [4]byte{}
+	b.buffer = [bufferLen]byte{}
 	for i := b.readHead; i < b.readHead+bufferLen; i++ {
 		b.buffer[i-b.readHead] = b.data[i]
 	}
