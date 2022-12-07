@@ -80,7 +80,7 @@ func cleanStack(s Stack) (stack Stack) {
 	return stack
 }
 
-func (s *Stack) makeAMove(move string) error {
+func (s *Stack) makeAMove(move string, sameOrder bool) error {
 	// move 3 from 9 to 1
 	times, err := strconv.Atoi(strings.Split(move, " ")[1])
 	if err != nil {
@@ -94,17 +94,21 @@ func (s *Stack) makeAMove(move string) error {
 	if err != nil {
 		return err
 	}
-	s.move(from, to, times)
+	s.move(from, to, times, sameOrder)
 	return nil
 }
 
-func (s *Stack) move(src, dest, times int) {
+func (s *Stack) move(src, dest, times int, sameOrder bool) {
 	var temp Stack = *s
 
 	newSrc := make([]string, 0, len(temp[src])-times)
 	newSrc = append(newSrc, temp[src][:len(temp[src])-times]...)
 	newDest := temp[dest]
-	newDest = append(newDest, reverse(temp[src][len(temp[src])-times:])...)
+	if sameOrder {
+		newDest = append(newDest, temp[src][len(temp[src])-times:]...)
+	} else {
+		newDest = append(newDest, reverse(temp[src][len(temp[src])-times:])...)
+	}
 
 	//fmt.Printf("        %#v\n", temp[src])
 	temp[src] = newSrc
@@ -118,6 +122,13 @@ func (s *Stack) move(src, dest, times int) {
 }
 
 func main() {
+	sameOrder := false
+
+	//
+	// This line enables output for part 2
+	sameOrder = true
+	//
+
 	// Open Input file
 	data, err := os.ReadFile(input)
 	if err != nil {
@@ -135,7 +146,7 @@ func main() {
 		if !strings.HasPrefix(line, "move") {
 			continue
 		}
-		err := stack.makeAMove(line)
+		err := stack.makeAMove(line, sameOrder)
 		if err != nil {
 			log.Fatal(err)
 		}
