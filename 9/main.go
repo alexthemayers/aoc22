@@ -5,9 +5,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
+)
+
+const (
+	NumberOfNodes   = 9
+	PrintGridSize   = 32
+	PrintGridOffset = PrintGridSize / 2
+	LiveRender      = true
 )
 
 type node struct {
@@ -16,13 +25,17 @@ type node struct {
 }
 
 // recordPosition records each position of a node to positions
-func recordPosition(k *node, positions *[]node) {
-	temp := node{x: k.x, y: k.y}
+func recordPosition(k *[]*node, positions *[][]node) {
+	temp := make([]node, 0, 1024)
+	for _, n := range *k {
+		temp = append(temp, node{x: n.x, y: n.y})
+	}
 	for _, p := range *positions {
 		if reflect.DeepEqual(p, temp) {
 			return // get out if it exists
 		}
 	}
+
 	*positions = append(*positions, temp)
 }
 
@@ -77,7 +90,7 @@ func move(k *node, direction string) {
 	}
 }
 
-const input = "./9/input.txt"
+const input = "./9/example_input.txt"
 
 func main() {
 	data, err := os.ReadFile(input)
@@ -86,9 +99,9 @@ func main() {
 	}
 	inputLines := strings.Split(bytes.NewBuffer(data).String(), "\n")
 
-	head := node{x: 0, y: 0}
-	tail := node{x: 0, y: 0}
-	positions := make([]node, 0, 1024)
+	nodes := generateNodes(0, 0)
+	fmt.Printf("we have %d nodes\n", len(nodes))
+	positions := make([][]node, 0, 1024)
 	totalMoves := 0
 
 	for _, line := range inputLines {
@@ -96,10 +109,17 @@ func main() {
 		steps, _ := strconv.Atoi(strings.Split(line, " ")[1])
 		totalMoves += steps
 		for i := 0; i < steps; i++ {
-			move(&head, direction)
-			updateTail(&head, &tail)
-			//printPositions(&head, &tail)
-			recordPosition(&tail, &positions)
+			//if totalMoves == 43 {
+			//	fmt.Printf("breakhere")
+			//}
+			move(nodes[0], direction)
+			for j := 0; j < NumberOfNodes-1; j++ {
+				updateTail(nodes[j], nodes[j+1])
+			}
+			if LiveRender {
+				printPositions(nodes)
+			}
+			recordPosition(&nodes, &positions)
 		}
 	}
 
@@ -107,22 +127,43 @@ func main() {
 	fmt.Printf("number of total moves :: %d\n", totalMoves)
 }
 
-func printPositions(head *node, tail *node) {
-	for y := 16; y > 0; y-- {
-		for x := 0; x < 16; x++ {
-			if head.x+8 == x && head.y+8 == y {
-				fmt.Printf("H")
-				continue
+func generateNodes(x int, y int) []*node {
+	nodes := make([]*node, 0, NumberOfNodes)
+	for i := 0; i < NumberOfNodes; i++ {
+		nodes = append(nodes, &node{x: x, y: y})
+	}
+	return nodes
+}
+
+func printPositions(nodes []*node) {
+	cmd := exec.Command("clear") //Linux example, its tested
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+
+	for y := PrintGridSize; y > 0; y-- {
+		for x := 0; x < PrintGridSize; x++ {
+			//printing position set
+
+			printed := false
+			for i := 0; i < NumberOfNodes; i++ {
+				if nodes[i].x+PrintGridOffset == x && nodes[i].y+PrintGridOffset == y {
+					if !printed {
+						fmt.Printf("%d", i+1)
+						printed = true
+					}
+				}
 			}
-			if tail.x+8 == x && tail.y+8 == y {
-				fmt.Printf("T")
-				continue
-			}
+
 			fmt.Printf(" ")
+
 		}
 		fmt.Printf("\n")
 	}
-	fmt.Printf("HEAD [x::%d y::%d]\n", head.x, head.y)
-	fmt.Printf("TAIL [x::%d y::%d]\n", tail.x, tail.y)
 	fmt.Println("")
+	if LiveRender {
+		for i := 0; i < NumberOfNodes; i++ {
+			fmt.Printf("NODE %d [x::%d y::%d]\n", i+1, nodes[i].x, nodes[i].y)
+		}
+		time.Sleep(time.Millisecond * 120)
+	}
 }
