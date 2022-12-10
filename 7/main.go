@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -78,12 +79,22 @@ func sizeDirectoryTree(current *Directory, dirArray *[]*Directory) {
 	*dirArray = append(*dirArray, current)
 }
 
+func getArrayKeys(arr []*Directory) []int {
+	var ret []int
+	for i := range arr {
+		ret = append(ret, i)
+	}
+	return ret
+}
+
 type File struct {
 	name string
 	size int
 }
 
 const input = "./7/input.txt"
+const totalDiskSpace = 70_000_000
+const neededSpace = 30_000_000
 
 func main() {
 	data, err := os.ReadFile(input)
@@ -134,10 +145,39 @@ func main() {
 	dirs := make([]*Directory, 0, 64)
 	sizeDirectoryTree(root, &dirs)
 	partOne := 0
+	var totalUsed int
 	for _, d := range dirs {
+		if d.name == "/" {
+			totalUsed = d.size
+		}
 		if d.size <= 100_000 {
 			partOne += d.size
 		}
 	}
 	fmt.Printf("solution to part 1: %d\n", partOne)
+
+	// Part 2
+	if totalUsed > totalDiskSpace {
+		log.Fatalf("something is horribly wrong. Total:: %d\t\tTotal Used :: %d\n", totalDiskSpace, totalUsed)
+	}
+	neededDeleteSize := neededSpace - (totalDiskSpace - totalUsed)
+	partTwoDirs := make([]*Directory, 0, 64)
+	for _, d := range dirs {
+		if d.size > neededDeleteSize {
+			partTwoDirs = append(partTwoDirs, d)
+		}
+	}
+	keys := getArrayKeys(partTwoDirs)
+	sort.SliceStable(keys, func(i, j int) bool {
+		return partTwoDirs[keys[i]].size < partTwoDirs[keys[j]].size
+	})
+
+	var smallestToDelete *Directory
+	for _, k := range keys {
+		if partTwoDirs[k].size > neededDeleteSize {
+			smallestToDelete = partTwoDirs[k]
+			break
+		}
+	}
+	fmt.Printf("Size of smallest needed file for free enough space is: \ndir :: %s\t\tsize :: %d\n", smallestToDelete.name, smallestToDelete.size)
 }
