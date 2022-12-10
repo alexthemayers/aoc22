@@ -10,10 +10,6 @@ import (
 
 const input = "./8/input.txt"
 
-/*
-A tree is visible if all to its right, left, up, and down are shorter than it.
-How many trees are visible from outside the grid?
-*/
 func populateGrid(input []string) [][]int {
 	var ret [][]int
 	for _, line := range input {
@@ -75,6 +71,54 @@ func isVisible(currentTreeRow, currentTreeCol int, grid [][]int) bool {
 	return false
 }
 
+func scenicScore(currentTreeRow, currentTreeCol int, grid [][]int) int {
+	// assumed visible unless checks say otherwise
+	up, down, left, right := 1, 1, 1, 1
+	currentTreeHeight := grid[currentTreeRow][currentTreeCol]
+
+	if currentTreeRow == 0 {
+		return 0
+	}
+	if currentTreeCol == 0 {
+		return 0
+	}
+	if currentTreeRow-1 == len(grid[0]) {
+		return 0
+	}
+	if currentTreeCol-1 == len(grid) {
+		return 0
+	}
+
+	// Going UP from current tree!
+	for row := currentTreeRow - 1; row >= 0 && grid[row][currentTreeCol] < currentTreeHeight; row-- {
+		if row > 0 {
+			up++
+		}
+	}
+
+	// Going DOWN from current tree!
+	for row := currentTreeRow + 1; row < len(grid) && grid[row][currentTreeCol] < currentTreeHeight; row++ {
+		if row < len(grid)-1 {
+			down++
+		}
+	}
+
+	// Going LEFT from current tree!
+	for col := currentTreeCol - 1; col >= 0 && grid[currentTreeRow][col] < currentTreeHeight; col-- {
+		if col > 0 {
+			left++
+		}
+	}
+
+	// Going RIGHT from current tree!
+	for col := currentTreeCol + 1; col < len(grid) && grid[currentTreeRow][col] < currentTreeHeight; col++ {
+		if col < len(grid[currentTreeRow])-1 {
+			right++
+		}
+	}
+	return up * down * left * right
+}
+
 func main() {
 	data, err := os.ReadFile(input)
 	if err != nil {
@@ -93,4 +137,16 @@ func main() {
 		}
 	}
 	fmt.Printf("%d trees are visible from outside the grid\n", visibleTrees)
+
+	score := 0
+	for i := 0; i < len(grid); i++ {
+		for j := 0; j < len(grid[i]); j++ {
+			// iterate through points to check
+			temp := scenicScore(i, j, grid)
+			if temp > score {
+				score = temp
+			}
+		}
+	}
+	fmt.Printf("%d is the highest scenic score for any tree\n", score)
 }
