@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -14,10 +12,11 @@ import (
 
 const (
 	NumberOfNodes   = 10
-	PrintGridSize   = 128
+	PrintGridSize   = 48
 	PrintGridOffset = PrintGridSize / 2
-	PrintDelay      = 50
+	PrintDelay      = 100
 	LiveRender      = false
+	Debug           = false
 )
 
 type node struct {
@@ -25,35 +24,42 @@ type node struct {
 	y int // + is up, - is down
 }
 
-// recordPosition records each position of a node to positions
-func recordPosition(k *[]*node, positions *[][]node) {
-	// TODO find out how to optimize this. 99% of processing time is spent here
-	temp := make([]node, 0, 1024)
-	for _, n := range *k {
-		temp = append(temp, node{x: n.x, y: n.y})
+func generateNodes(x int, y int) []*node {
+	nodes := make([]*node, 0, NumberOfNodes)
+	for i := 0; i < NumberOfNodes; i++ {
+		nodes = append(nodes, &node{x: x, y: y})
 	}
-	for _, p := range *positions {
-		if reflect.DeepEqual(p, temp) {
-			return // get out if it exists
-		}
-	}
-
-	*positions = append(*positions, temp)
+	return nodes
 }
 
-// updateTail moves the tail appropriately based on the relevant movement of the head
+// move updates the position of the head
+func move(k *node, direction string) {
+	switch direction {
+	case "R":
+		k.x++
+	case "L":
+		k.x--
+	case "U":
+		k.y++
+	case "D":
+		k.y--
+	default:
+		log.Fatal("should not get here!")
+	}
+}
+
+// updateTail moves the tail appropriately based on the relative movement of the head
 func updateTail(head *node, tail *node) {
 	// y axis movement
 	if head.x == tail.x {
-
-		// HAPPY CASE
-		if head.y == tail.y {
-			return
+		if Debug {
+			if head.y == tail.y {
+				return
+			}
+			if head.y-tail.y == 1 || head.y-tail.y == -1 {
+				return
+			}
 		}
-		if head.y-tail.y == 1 || head.y-tail.y == -1 {
-			return
-		}
-		//
 
 		if head.y-tail.y == 2 {
 			tail.y++
@@ -66,12 +72,11 @@ func updateTail(head *node, tail *node) {
 	}
 	// x axis movement
 	if head.y == tail.y {
-
-		// HAPPY CASE
-		if head.x-tail.x == 1 || head.x-tail.x == -1 {
-			return
+		if Debug {
+			if head.x-tail.x == 1 || head.x-tail.x == -1 {
+				return
+			}
 		}
-		//
 
 		if head.x-tail.x == 2 {
 			tail.x++
@@ -83,17 +88,17 @@ func updateTail(head *node, tail *node) {
 		}
 	}
 
-	// HAPPY CASE
-	if (head.x-tail.x == -1 && head.y-tail.y == 1) ||
-		(head.x-tail.x == 1 && head.y-tail.y == -1) {
-		return
-	}
+	if Debug {
+		if (head.x-tail.x == -1 && head.y-tail.y == 1) ||
+			(head.x-tail.x == 1 && head.y-tail.y == -1) {
+			return
+		}
 
-	if (head.x-tail.x == -1 && head.y-tail.y == -1) ||
-		(head.x-tail.x == 1 && head.y-tail.y == 1) {
-		return
+		if (head.x-tail.x == -1 && head.y-tail.y == -1) ||
+			(head.x-tail.x == 1 && head.y-tail.y == 1) {
+			return
+		}
 	}
-	//
 
 	// TOP LEFT
 	if (head.x-tail.x == -2 && head.y-tail.y == 1) ||
@@ -130,28 +135,60 @@ func updateTail(head *node, tail *node) {
 		tail.y--
 		return
 	}
-	log.Printf("The shit has hit the fan\nHead:: [x: %d | y: %d]\nTail:: [x: %d | y: %d]\nDelta:: [x: %d | y: %d]\\n", head.x, head.y, tail.x, tail.y, head.x-tail.x, head.y-tail.y)
+
+	if Debug {
+		log.Printf("The shit has hit the fan\nHead:: [x: %d | y: %d]\nTail:: [x: %d | y: %d]\nDelta:: [x: %d | y: %d]\\n", head.x, head.y, tail.x, tail.y, head.x-tail.x, head.y-tail.y)
+	}
 }
 
-// move updates the position of the head
-func move(k *node, direction string) {
-	switch direction {
-	case "R":
-		k.x++
-	case "L":
-		k.x--
-	case "U":
-		k.y++
-	case "D":
-		k.y--
-	default:
-		log.Fatal("should not get here!")
+// recordPosition records each position of a node to positions
+func recordPosition(k *node, positions *[]*node) {
+	for _, n := range *positions {
+		if n.x == k.x && n.y == k.y {
+			return // get out if it exists
+		}
 	}
+	temp := node{x: k.x, y: k.y}
+	*positions = append(*positions, &temp)
+}
+
+func printPositions(moves int, nodes []*node) {
+	for y := PrintGridSize; y > 0; y-- {
+		for x := 0; x < PrintGridSize; x++ {
+			printed := false
+			for i := 0; i < NumberOfNodes; i++ {
+				if nodes[i].x+PrintGridOffset == x && nodes[i].y+PrintGridOffset == y {
+					if !printed {
+						s := strconv.Itoa(i + 1)
+						if len(s) == 1 {
+							fmt.Printf(" %s", s)
+						} else {
+							fmt.Printf("%s", s)
+						}
+						printed = true
+					}
+				}
+			}
+			if !printed {
+				fmt.Printf(" .")
+			}
+		}
+		fmt.Printf("\n")
+	}
+	fmt.Println("")
+	if Debug {
+		fmt.Printf("move:: %d\n", moves)
+		for i := 0; i < NumberOfNodes; i++ {
+			fmt.Printf("NODE %d [x::%d y::%d]\n", i+1, nodes[i].x, nodes[i].y)
+		}
+	}
+	time.Sleep(time.Millisecond * PrintDelay)
 }
 
 const input = "./9/input.txt"
 
 func main() {
+
 	data, err := os.ReadFile(input)
 	if err != nil {
 		panic("Could not open file: " + err.Error())
@@ -160,18 +197,14 @@ func main() {
 
 	nodes := generateNodes(0, 0)
 	fmt.Printf("we have %d nodes\n", len(nodes))
-	positions := make([][]node, 0, 1024)
+	positions := make([]*node, 0, 1024)
 	totalMoves := 0
 
 	for _, line := range inputLines {
 		direction := strings.Split(line, " ")[0]
 		steps, _ := strconv.Atoi(strings.Split(line, " ")[1])
+		totalMoves += steps
 		for i := 0; i < steps; i++ {
-			totalMoves++
-			if totalMoves == 57 {
-				fmt.Printf("breakhere")
-			}
-
 			move(nodes[0], direction)
 			for j := 0; j < NumberOfNodes-1; j++ {
 				updateTail(nodes[j], nodes[j+1])
@@ -179,52 +212,9 @@ func main() {
 			if LiveRender {
 				printPositions(totalMoves, nodes)
 			}
-			recordPosition(&nodes, &positions)
-
+			recordPosition(nodes[len(nodes)-1], &positions)
 		}
 	}
-
 	fmt.Printf("number of positions :: %d\n", len(positions))
 	fmt.Printf("number of total moves :: %d\n", totalMoves)
-}
-
-func generateNodes(x int, y int) []*node {
-	nodes := make([]*node, 0, NumberOfNodes)
-	for i := 0; i < NumberOfNodes; i++ {
-		nodes = append(nodes, &node{x: x, y: y})
-	}
-	return nodes
-}
-
-func printPositions(moves int, nodes []*node) {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-
-	for y := PrintGridSize; y > 0; y-- {
-		for x := 0; x < PrintGridSize; x++ {
-			//printing position set
-
-			printed := false
-			for i := 0; i < NumberOfNodes; i++ {
-				if nodes[i].x+PrintGridOffset == x && nodes[i].y+PrintGridOffset == y {
-					if !printed {
-						fmt.Printf(" %d", i+1)
-						printed = true
-					}
-				}
-			}
-			if !printed {
-				fmt.Printf(" .")
-			}
-
-		}
-		fmt.Printf("\n")
-	}
-	fmt.Println("")
-	fmt.Printf("move:: %d\n", moves)
-	for i := 0; i < NumberOfNodes; i++ {
-		fmt.Printf("NODE %d [x::%d y::%d]\n", i+1, nodes[i].x, nodes[i].y)
-	}
-	time.Sleep(time.Millisecond * PrintDelay)
 }
