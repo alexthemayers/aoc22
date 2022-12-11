@@ -13,18 +13,49 @@ var (
 	cycleNumber     = 0
 	xRegister       = 1
 	signalStrengths = map[int]int{20: 0, 60: 0, 100: 0, 140: 0, 180: 0, 220: 0}
+	crtScreen       = makeCrt()
 )
 
 const input = "./10/input.txt"
 
+func makeCrt() [6][]string {
+	var ret [6][]string
+	for k := range ret {
+		ret[k] = make([]string, 40)
+	}
+	return ret
+}
+
 func cycle() {
 	cycleNumber++
+	addSymbol()
+
 	for k := range signalStrengths {
 		if cycleNumber == k {
 			strength := signalStrength()
 			signalStrengths[k] = strength
 		}
 	}
+}
+
+func addSymbol() {
+	for i := range crtScreen {
+		for j := range crtScreen[i] {
+			if crtScreen[i][j] == "" {
+				for _, k := range getSprite() {
+					if k == (cycleNumber-1)%40 {
+						crtScreen[i][j] = "#"
+						return
+					}
+				}
+				crtScreen[i][j] = "."
+				return
+			}
+		}
+	}
+}
+func getSprite() [3]int {
+	return [3]int{xRegister - 1, xRegister, xRegister + 1}
 }
 
 func noop() {
@@ -60,11 +91,15 @@ func main() {
 		}
 		noop()
 	}
-	fmt.Printf("Cycles:: %d\t\tRegister:: %d\n", cycleNumber, xRegister)
 	signalStrengthSum := 0
 	for k := range signalStrengths {
 		signalStrengthSum += signalStrengths[k]
 	}
 	fmt.Printf("Signal strength sum:: %d\n", signalStrengthSum)
-
+	for i := range crtScreen {
+		for j := range crtScreen[i] {
+			fmt.Printf(crtScreen[i][j])
+		}
+		fmt.Printf("\n")
+	}
 }
