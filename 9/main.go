@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	NumberOfNodes   = 9
-	PrintGridSize   = 32
+	NumberOfNodes   = 10
+	PrintGridSize   = 128
 	PrintGridOffset = PrintGridSize / 2
-	LiveRender      = true
+	PrintDelay      = 50
+	LiveRender      = false
 )
 
 type node struct {
@@ -26,6 +27,7 @@ type node struct {
 
 // recordPosition records each position of a node to positions
 func recordPosition(k *[]*node, positions *[][]node) {
+	// TODO find out how to optimize this. 99% of processing time is spent here
 	temp := make([]node, 0, 1024)
 	for _, n := range *k {
 		temp = append(temp, node{x: n.x, y: n.y})
@@ -41,37 +43,94 @@ func recordPosition(k *[]*node, positions *[][]node) {
 
 // updateTail moves the tail appropriately based on the relevant movement of the head
 func updateTail(head *node, tail *node) {
-	if head.y-tail.y > 2 {
-		log.Printf("something is fishy. head.y:: %d\ttail.y:: %d\n", head.y, tail.y)
-	}
-	switch head.y - tail.y {
-	case 2: // head 2 above
-		tail.y++
-		if head.x != tail.x {
-			tail.x = head.x
+	// y axis movement
+	if head.x == tail.x {
+
+		// HAPPY CASE
+		if head.y == tail.y {
+			return
 		}
-	case -2: // head 2 below
-		tail.y--
-		if head.x != tail.x {
-			tail.x = head.x
+		if head.y-tail.y == 1 || head.y-tail.y == -1 {
+			return
+		}
+		//
+
+		if head.y-tail.y == 2 {
+			tail.y++
+			return
+		}
+		if head.y-tail.y == -2 {
+			tail.y--
+			return
+		}
+	}
+	// x axis movement
+	if head.y == tail.y {
+
+		// HAPPY CASE
+		if head.x-tail.x == 1 || head.x-tail.x == -1 {
+			return
+		}
+		//
+
+		if head.x-tail.x == 2 {
+			tail.x++
+			return
+		}
+		if head.x-tail.x == -2 {
+			tail.x--
+			return
 		}
 	}
 
-	if head.x-tail.x > 2 {
-		log.Printf("something is fishy. head.x:: %d\ttail.x:: %d\n", head.x, tail.x)
+	// HAPPY CASE
+	if (head.x-tail.x == -1 && head.y-tail.y == 1) ||
+		(head.x-tail.x == 1 && head.y-tail.y == -1) {
+		return
 	}
-	switch head.x - tail.x {
-	case 2: // head 2 above
-		tail.x++
-		if head.y != tail.y {
-			tail.y = head.y
-		}
-	case -2: // head 2 below
+
+	if (head.x-tail.x == -1 && head.y-tail.y == -1) ||
+		(head.x-tail.x == 1 && head.y-tail.y == 1) {
+		return
+	}
+	//
+
+	// TOP LEFT
+	if (head.x-tail.x == -2 && head.y-tail.y == 1) ||
+		(head.x-tail.x == -1 && head.y-tail.y == 2) ||
+		(head.x-tail.x == -2 && head.y-tail.y == 2) { // DIAGONAL CASE
 		tail.x--
-		if head.y != tail.y {
-			tail.y = head.y
-		}
+		tail.y++
+		return
 	}
+
+	// TOP RIGHT
+	if (head.x-tail.x == 1 && head.y-tail.y == 2) ||
+		(head.x-tail.x == 2 && head.y-tail.y == 1) ||
+		(head.x-tail.x == 2 && head.y-tail.y == 2) { // DIAGONAL CASE
+		tail.x++
+		tail.y++
+		return
+	}
+
+	// BOTTOM RIGHT
+	if (head.x-tail.x == 2 && head.y-tail.y == -1) ||
+		(head.x-tail.x == 1 && head.y-tail.y == -2) ||
+		(head.x-tail.x == 2 && head.y-tail.y == -2) { // DIAGONAL CASE
+		tail.x++
+		tail.y--
+		return
+	}
+
+	// BOTTOM LEFT
+	if (head.x-tail.x == -1 && head.y-tail.y == -2) ||
+		(head.x-tail.x == -2 && head.y-tail.y == -1) ||
+		(head.x-tail.x == -2 && head.y-tail.y == -2) { // DIAGONAL CASE
+		tail.x--
+		tail.y--
+		return
+	}
+	log.Printf("The shit has hit the fan\nHead:: [x: %d | y: %d]\nTail:: [x: %d | y: %d]\nDelta:: [x: %d | y: %d]\\n", head.x, head.y, tail.x, tail.y, head.x-tail.x, head.y-tail.y)
 }
 
 // move updates the position of the head
@@ -90,7 +149,7 @@ func move(k *node, direction string) {
 	}
 }
 
-const input = "./9/example_input.txt"
+const input = "./9/input.txt"
 
 func main() {
 	data, err := os.ReadFile(input)
@@ -107,19 +166,21 @@ func main() {
 	for _, line := range inputLines {
 		direction := strings.Split(line, " ")[0]
 		steps, _ := strconv.Atoi(strings.Split(line, " ")[1])
-		totalMoves += steps
 		for i := 0; i < steps; i++ {
-			//if totalMoves == 43 {
-			//	fmt.Printf("breakhere")
-			//}
+			totalMoves++
+			if totalMoves == 57 {
+				fmt.Printf("breakhere")
+			}
+
 			move(nodes[0], direction)
 			for j := 0; j < NumberOfNodes-1; j++ {
 				updateTail(nodes[j], nodes[j+1])
 			}
 			if LiveRender {
-				printPositions(nodes)
+				printPositions(totalMoves, nodes)
 			}
 			recordPosition(&nodes, &positions)
+
 		}
 	}
 
@@ -135,8 +196,8 @@ func generateNodes(x int, y int) []*node {
 	return nodes
 }
 
-func printPositions(nodes []*node) {
-	cmd := exec.Command("clear") //Linux example, its tested
+func printPositions(moves int, nodes []*node) {
+	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 
@@ -148,22 +209,22 @@ func printPositions(nodes []*node) {
 			for i := 0; i < NumberOfNodes; i++ {
 				if nodes[i].x+PrintGridOffset == x && nodes[i].y+PrintGridOffset == y {
 					if !printed {
-						fmt.Printf("%d", i+1)
+						fmt.Printf(" %d", i+1)
 						printed = true
 					}
 				}
 			}
-
-			fmt.Printf(" ")
+			if !printed {
+				fmt.Printf(" .")
+			}
 
 		}
 		fmt.Printf("\n")
 	}
 	fmt.Println("")
-	if LiveRender {
-		for i := 0; i < NumberOfNodes; i++ {
-			fmt.Printf("NODE %d [x::%d y::%d]\n", i+1, nodes[i].x, nodes[i].y)
-		}
-		time.Sleep(time.Millisecond * 120)
+	fmt.Printf("move:: %d\n", moves)
+	for i := 0; i < NumberOfNodes; i++ {
+		fmt.Printf("NODE %d [x::%d y::%d]\n", i+1, nodes[i].x, nodes[i].y)
 	}
+	time.Sleep(time.Millisecond * PrintDelay)
 }
